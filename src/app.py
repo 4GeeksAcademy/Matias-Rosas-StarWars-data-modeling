@@ -1,5 +1,15 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
+Commands:
+pipenv install flask
+pipenv shell
+python src/app.py
+***Para verificar si algun puerto sigue activo:
+lsof -i :3000
+***Para eliminar el puerto:
+kill -9 <PID>
+***
+psql -h localhost -U gitpod example
 """
 import os
 from flask import Flask, request, jsonify, url_for
@@ -8,8 +18,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planet, Characters
-#from models import Person
+from models import db, User, Planet, Characters, Planet_Favorites
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -43,6 +52,7 @@ def handle_hello():
     }
     return jsonify(response_body), 200
 
+#    [GET] /users Listar todos los usuarios del blog.
 
 @app.route('/users', methods=['GET'])
 def get_all_users():
@@ -55,6 +65,7 @@ def get_all_users():
     #solo asi se puede convertir en JSON
     return jsonify({'msg': 'ok', 'data': users_serialized}), 200
 
+#     [POST] /favorite/planet/<int:planet_id>/<int:user_id>
 @app.route('/planet', methods=['POST'])
 def post_planet():
     #para crear un planeta necesitamos un body que contenga
@@ -80,6 +91,29 @@ def post_planet():
           ), 201
 
 
+#   [GET] /planets Listar todos los registros de planets en la base de datos.
+@app.route('/planets', methods=['GET'])
+def get_all_planets():
+    planets = Planet.query.all()
+    print("ACA ESTAN LOS PLANETS: ",planets)
+    planets_serialized = []
+    for planet in planets:
+        planets_serialized.append(planet.serialize())
+    return jsonify({'msg': 'Planetas traidos exitosamente', 'data': planets_serialized}), 200
+
+#   [GET] /planets/<int:planet_id> Muestra la información de un solo planeta según su id.
+@app.route('/planets/<int:id>', methods=['GET'])
+def get_planets(id):
+    planet = Planet.query.get(id)
+    print(planet) #objeto
+    planet_serialized = planet.serialize()
+    return jsonify({
+        'msg': 'ok',
+        'data': planet_serialized
+        })
+
+
+#  [GET] /people/<int:people_id> Muestra la información de un solo personaje según su id.
 @app.route('/characters/<int:id>', methods=['GET'])
 def get_characters(id):
     character = Characters.query.get(id)
@@ -89,25 +123,94 @@ def get_characters(id):
     print(character.planet_id_relationship) #objeto
     print(character.planet_id_relationship.name)
     character_serialized = character.serialize()
-    #character_serialized['planet_info'] = character.planet_id_relationship.serialize()
     return jsonify({
         'msg': 'ok',
         'data': character_serialized
         })
+#   [GET] /people Listar todos los registros de people en la base de datos.
+@app.route('/characters', methods=['GET'])
+def get_all_characters():
+    characters = Characters.query.all()
+    print(characters)
+    characters_serialized = []
+    for character in characters:
+        characters_serialized.append(character.serialize())
+    return jsonify({
+        'msg': 'ok',
+        'data': characters_serialized
+        })
 
-@app.route('/favorite_planets/<int:user_id>', methods=['GET'])
-def get_favorites_by_user(user_id):
-    user = User.query.get(user_id)
-    #print(user)
-    #print(user.planet_favorites)
-    favorite_planets_serialized = []
-    for fav_planet in user.planet_favorites:
-        favorite_planets_serialized.append(fav_planet.planet_relationship.serialize())
-    data = {
-        'user_info': user.serialize(),
-        'planets_favorites': favorite_planets_serialized
-    }
-    return jsonify({'msg':'ok', 'data': data})
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({"msg": "El cuerpo de la solicitud está vacío"}), 400
+    if 'email' not in body:
+        return jsonify({"msg": "El campo 'email' es obligatorio"}), 400
+    if 'password' not in body:
+        return jsonify({"msg": "El campo 'password' es obligatorio"}), 400
+    if 'is_active' not in body:
+        return jsonify({"msg": "El campo 'is_active' es obligatorio"}), 400
+    
+    new_user = User(
+        email=body['email'],
+        password=body['password'],
+        is_active=body['is_active']
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'msg':'Usuario creado exitosamente', 'data': new_user.serialize()}), 201
+
+# [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
+@app.route('/users/<int:user_id>/favorites', methods=['GET'])
+def get_all_user_favorites(user_id):
+    planet_favorites = Planet_Favorites.query.filter_by(user_id=user_id).all()
+    planet_favorites_serialized = []
+    for planet in planet_favorites:
+        planet_favorites_serialized.append(planet.serialize())
+    return jsonify({'msg': 'Planetas favoritos traidos exitosamente', 'Aqui estan los planetas favoritos: ': planet_favorites_serialized}), 200
+
+#    [POST] /favorite/planet/<int:planet_id>/<int:user_id> Añade un nuevo planet favorito al usuario actual con el id = planet_id.
+@app.route('/favorite/planet/<int:planet_id>/<int:user_id>', methods=['POST'])
+def add_new_favorite_planet(planet_id, user_id):
+        planets = Planet.query.all()
+        planet =Planet.query.get(planet_id)
+        user = User.query.get(user_id)
+        if user and planet:
+            relation_favorite = Planet_Favorites.query.filter_by(user_id=user_id,planet_id=planet_id).first()
+            if relation_favorite != True:
+                db.session.add(planet_id,user_id)
+                db.session.commit(relation_favorite)
+                return jsonify({'msg': 'El planeta ha sido agregado como favorito', 'lista de planetas: ': planets}), 201
+            else:
+                return jsonify({'msg': 'El planeta ya esta agregado como favorito'}), 400
+
+
+#      [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
+   
+@app.route('/favorite/planet/<int:planet_id>/<int:user_id>', methods=['DELETE'])
+def delete_favorite_planet(planet_id, user_id):
+    planet_favorites_serialized = []
+    planet_to_be_deleted = Planet.query.get(planet_id)
+    user  = User.query.get(user_id)
+    if not user:
+        return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
+    if not planet_to_be_deleted:
+        return jsonify({'msg': f'El planeta con ID {planet_id} no existe'}), 404
+    relation_favorite = Planet_Favorites.query.filter_by(user_id=user_id, planet_id=planet_id).first()
+    if relation_favorite:
+        db.session.delete(relation_favorite)
+        db.session.commit()
+        planet_favorites = Planet_Favorites.query.all()
+        for planet in planet_favorites:
+            planet_favorites_serialized.append(planet.serialize())
+        return jsonify({'msg': 'El planeta ha sido eliminado de tus favoritos', 'lista actual de planetas: ': planet_favorites_serialized}), 200
+    else:
+        return jsonify({'msg': 'El planeta no estaba en la lista de favoritos'}), 404
+
+
+#[POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':

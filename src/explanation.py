@@ -1,19 +1,19 @@
 '''
 Crea una API conectada a una base de datos e implemente los siguientes endpoints (muy similares a SWAPI.dev or SWAPI.tech):
 
-    [GET] /people Listar todos los registros de people en la base de datos.
-    [GET] /people/<int:people_id> Muestra la información de un solo personaje según su id.
-    [GET] /planets Listar todos los registros de planets en la base de datos.
-    [GET] /planets/<int:planet_id> Muestra la información de un solo planeta según su id.
+COMPLETADO    [GET] /people Listar todos los registros de people en la base de datos.
+COMPLETADO    [GET] /people/<int:people_id> Muestra la información de un solo personaje según su id.
+COMPLETADO    [GET] /planets Listar todos los registros de planets en la base de datos.
+COMPLETADO    [GET] /planets/<int:planet_id> Muestra la información de un solo planeta según su id.
 
 Adicionalmente, necesitamos crear los siguientes endpoints para que podamos tener usuarios y favoritos en nuestro blog:
 
-    [GET] /users Listar todos los usuarios del blog.
-    [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
-    [POST] /favorite/planet/<int:planet_id>/<int:user_id> Añade un nuevo planet favorito al usuario actual con el id = planet_id.
-    [POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
-    [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
-    [DELETE] /favorite/people/<int:people_id>/<int:user_id> Elimina un people favorito con el id = people_id.
+COMPLETADO    [GET] /users Listar todos los usuarios del blog.
+****FALTARIA MOSTRAR LOS FAVORITES CHARACTERS    [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
+COMPLETADO    [POST] /favorite/planet/<int:planet_id>/<int:user_id> Añade un nuevo planet favorito al usuario actual con el id = planet_id.
+****HICE LA TABLA PERO NO LA ENDPOINT    [POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
+COMPLETADO [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
+****FALTA    [DELETE] /favorite/people/<int:people_id>/<int:user_id> Elimina un people favorito con el id = people_id.
 
 
 <----------------------------------------------------------------------------------->
