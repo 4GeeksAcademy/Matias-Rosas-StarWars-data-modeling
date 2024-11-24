@@ -18,7 +18,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planet, Characters, Planet_Favorites
+from models import db, User, Planet, Characters, Planet_Favorites, Characters_Favorites
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -45,12 +45,6 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
-    return jsonify(response_body), 200
 
 #    [GET] /users Listar todos los usuarios del blog.
 
@@ -87,6 +81,31 @@ def post_planet():
         {
             'msg': 'Planeta agregado con exito',
           'data': new_planet.serialize()
+          }
+          ), 201
+
+@app.route('/character', methods=['POST'])
+def post_character():
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg': 'Debes enviar información en el body'}), 400
+    if 'name' not in body:
+        return jsonify({'msg': 'El campo name es obligatorio'}), 400
+    if 'height' not in body:
+        return jsonify({'msg': 'El campo height es obligatorio'}), 400
+    if 'planet_id' not in body:
+        return jsonify({'msg': 'El campo planet_id es obligatorio'}),400 
+    new_character = Characters()
+    new_character.name = body['name']
+    new_character.height = body['height']
+    new_character.planet_id = body['planet_id']
+    db.session.add(new_character)
+    db.session.commit()
+
+    return jsonify(
+        {
+            'msg': 'El personaje ha sido agregado con exito',
+          'data': new_character.serialize()
           }
           ), 201
 
@@ -165,11 +184,15 @@ def create_user():
 # [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
 @app.route('/users/<int:user_id>/favorites', methods=['GET'])
 def get_all_user_favorites(user_id):
+    characters_favorites = Characters_Favorites.query.filter_by(user_id=user_id).all()
+    characters_favorites_serialized = []
     planet_favorites = Planet_Favorites.query.filter_by(user_id=user_id).all()
     planet_favorites_serialized = []
     for planet in planet_favorites:
         planet_favorites_serialized.append(planet.serialize())
-    return jsonify({'msg': 'Planetas favoritos traidos exitosamente', 'Aqui estan los planetas favoritos: ': planet_favorites_serialized}), 200
+    for character in characters_favorites:
+        characters_favorites_serialized.append(character.serialize())
+    return jsonify({'msg': 'Planetas y Personajes favoritos traidos exitosamente', 'Aqui estan los planetas favoritos: ': planet_favorites_serialized, 'Aqui estan los personajes favoritos: ': characters_favorites_serialized}), 200
 
 #    [POST] /favorite/planet/<int:planet_id>/<int:user_id> Añade un nuevo planet favorito al usuario actual con el id = planet_id.
 @app.route('/favorite/planet/<int:planet_id>/<int:user_id>', methods=['POST'])
@@ -187,7 +210,7 @@ def add_new_favorite_planet(planet_id, user_id):
                 return jsonify({'msg': 'El planeta ya esta agregado como favorito'}), 400
 
 
-#      [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
+# [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
    
 @app.route('/favorite/planet/<int:planet_id>/<int:user_id>', methods=['DELETE'])
 def delete_favorite_planet(planet_id, user_id):
@@ -208,9 +231,47 @@ def delete_favorite_planet(planet_id, user_id):
         return jsonify({'msg': 'El planeta ha sido eliminado de tus favoritos', 'lista actual de planetas: ': planet_favorites_serialized}), 200
     else:
         return jsonify({'msg': 'El planeta no estaba en la lista de favoritos'}), 404
-
+    
+# [DELETE] /favorite/people/<int:people_id>/<int:user_id> Elimina un people favorito con el id = people_id
+@app.route('/favorite/people/<int:character_id>/<int:user_id>', methods=['DELETE'])
+def delete_favorite_character(character_id, user_id):
+    characters_favorites_serialized = []
+    user  = User.query.get(user_id)
+    if not user:
+        return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
+    relation_favorite = Characters_Favorites.query.filter_by(user_id=user_id, character_id=character_id).first()
+    if relation_favorite:
+        db.session.delete(relation_favorite)
+        db.session.commit()
+        characters_favorites = Characters_Favorites.query.all()
+        for character in characters_favorites:
+            characters_favorites_serialized.append(character.serialize())
+        return jsonify({'msg': 'El personaje ha sido eliminado de tus favoritos', 'lista actual de personaje: ': characters_favorites_serialized}), 200
+    else:
+        return jsonify({'msg': 'El personaje no estaba en la lista de favoritos'}), 404
 
 #[POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
+@app.route('/favorite/people/<int:character_id>/<int:user_id>', methods=['POST'])
+def add_new_favorite_character(character_id,user_id):
+    characters_favorites_serialized = []
+    character_to_be_added = Characters.query.get(character_id)
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
+    if not character_to_be_added:
+        return jsonify({'msg': f'El personaje con el ID {character_id} no existe'}), 404
+    relation_favorite = Characters_Favorites.query.filter_by(user_id=user_id,character_id=character_id).first()
+    if not relation_favorite:
+        new_favorite = Characters_Favorites(user_id=user_id, character_id=character_id)
+        db.session.add(new_favorite)
+        db.session.commit()
+        characters_favorites = Characters_Favorites.query.all()
+        for character in characters_favorites:
+            characters_favorites_serialized.append(character.serialize())
+        return jsonify({'msg': 'El personaje ha sido agregado staisfactoriamente', 'lista actual de personajes favoritos': characters_favorites_serialized})
+    else: 
+        return jsonify({'msg': 'El personaje ya esta agregado en tu lista de personajes favoritos'}), 404
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':

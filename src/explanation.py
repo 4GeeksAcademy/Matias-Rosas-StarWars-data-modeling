@@ -9,11 +9,11 @@ COMPLETADO    [GET] /planets/<int:planet_id> Muestra la información de un solo 
 Adicionalmente, necesitamos crear los siguientes endpoints para que podamos tener usuarios y favoritos en nuestro blog:
 
 COMPLETADO    [GET] /users Listar todos los usuarios del blog.
-****FALTARIA MOSTRAR LOS FAVORITES CHARACTERS    [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
+COMPLETADO    [GET] /users/<int:user_id>/favorites Listar todos los favoritos que pertenecen al usuario actual.
 COMPLETADO    [POST] /favorite/planet/<int:planet_id>/<int:user_id> Añade un nuevo planet favorito al usuario actual con el id = planet_id.
-****HICE LA TABLA PERO NO LA ENDPOINT    [POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
-COMPLETADO [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
-****FALTA    [DELETE] /favorite/people/<int:people_id>/<int:user_id> Elimina un people favorito con el id = people_id.
+COMPLETADO    [POST] /favorite/people/<int:people_id>/<int:user_id> Añade un nuevo people favorito al usuario actual con el id = people_id.
+COMPLETADO    [DELETE] /favorite/planet/<int:planet_id>/<int:user_id> Elimina un planet favorito con el id = planet_id.
+COMPLETADO    [DELETE] /favorite/people/<int:people_id>/<int:user_id> Elimina un people favorito con el id = people_id.
 
 
 <----------------------------------------------------------------------------------->

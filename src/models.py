@@ -107,5 +107,3 @@ class Characters_Favorites(db.Model):
             'user_id': self.user_id,
             'character_id': self.character_id
         }        
-
-    
